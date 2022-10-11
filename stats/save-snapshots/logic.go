@@ -1,7 +1,6 @@
 package savesnapshots
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -15,20 +14,29 @@ import (
 	wg "github.com/cufee/am-wg-proxy-next/client"
 )
 
-func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []helpers.FailedUpdate {
+func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]helpers.UpdateResult, []string) {
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
-		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get accounts: %w", err)}}
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get accounts: %s", err.Error()), WillRetry: true}
+		}
+		return result, playerIDs
 	}
 	achievementsData, err := client.BulkGetAccountsAchievements(playerIDs, realm)
 	if err != nil {
-		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get achievements: %w", err)}}
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get achievements: %s", err.Error()), WillRetry: true}
+		}
+		return result, playerIDs
 	}
 
 	// Save all snapshots in goroutines
 	var wg sync.WaitGroup
-	var failed = make(chan helpers.FailedUpdate, len(accountData))
+	var retry = make(chan string, len(accountData))
+	var result = make(chan helpers.UpdateResult, len(accountData))
 	for _, id := range playerIDs {
 		wg.Add(1)
 		account := accountData[id]
@@ -36,8 +44,23 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []help
 			defer wg.Done()
 			if account.AccountID == 0 || id == "" {
 				// This should never happen but just in case
-				failed <- helpers.FailedUpdate{AccountID: id, Err: errors.New("account not found")}
+				result <- helpers.UpdateResult{AccountID: id, Error: "account not found"}
 				return
+			}
+
+			{
+				// TODO: This can be done in through aggregation pipeline in 1 query
+				lastBattles, err := database.GetLastTotalBattles(int(account.AccountID), isManual)
+				if err != nil {
+					retry <- id
+					result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get last total battles: %s", err.Error()), WillRetry: true}
+					return
+				}
+				if (account.Statistics.All.Battles + account.Statistics.Rating.Battles - lastBattles) < 1 {
+					// No new battles
+					result <- helpers.UpdateResult{AccountID: id, Error: "no new battles", Success: true}
+					return
+				}
 			}
 
 			var snapshot stats.AccountSnapshot
@@ -61,7 +84,8 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []help
 			// Get vehicle stats
 			vehicles, e := client.GetAccountVehicles(int(account.AccountID))
 			if e != nil {
-				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to get vehicles: %s", e.Message)}
+				retry <- id
+				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get vehicles: %s", e.Message), WillRetry: true}
 				return
 			}
 
@@ -81,16 +105,26 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []help
 			// Save to database
 			err := database.SavePlayerSnapshot(snapshot)
 			if err != nil {
-				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to save snapshot: %w", err)}
+				retry <- id
+				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to save snapshot: %s", err.Error()), WillRetry: true}
 			}
+
+			result <- helpers.UpdateResult{AccountID: id, Success: true}
 		}(account, id)
 	}
 	wg.Wait()
-	close(failed)
+	close(result)
+	close(retry)
 
-	var result []helpers.FailedUpdate
-	for err := range failed {
-		result = append(result, err)
+	// Failed updates errors
+	var results []helpers.UpdateResult
+	for r := range result {
+		results = append(results, r)
 	}
-	return result
+	// Retry these IDs
+	var retryIDs []string
+	for id := range retry {
+		retryIDs = append(retryIDs, id)
+	}
+	return results, retryIDs
 }

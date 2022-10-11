@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/byvko-dev/am-core/mongodb/driver"
@@ -32,18 +33,18 @@ func GetRealmAccountIDs(realm string) ([]int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := client.Raw(collectionAccounts).Distinct(ctx, "account_id", bson.M{"realm": realm})
+	result, err := client.Raw(collectionAccounts).Distinct(ctx, "account_id", bson.M{"realm": strings.ToUpper(realm)})
 	if err != nil {
 		return nil, err
 	}
 
 	var ids []int
 	for _, idRaw := range result {
-		id, ok := idRaw.(int)
+		id, ok := idRaw.(int32)
 		if !ok {
 			return nil, errors.New("failed to convert account id to int")
 		}
-		ids = append(ids, id)
+		ids = append(ids, int(id))
 	}
 
 	return ids, err

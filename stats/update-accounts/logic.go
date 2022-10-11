@@ -3,6 +3,7 @@ package updateplayers
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,21 +15,30 @@ import (
 	wg "github.com/cufee/am-wg-proxy-next/client"
 )
 
-func updateAccounts(realm string, playerIDs []string) []helpers.FailedUpdate {
+func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, []string) {
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
-		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get accounts: %w", err)}}
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get accounts: %s", err.Error()), WillRetry: true}
+		}
+		return result, playerIDs
 	}
 
 	clansData, err := client.BulkGetAccountsClans(playerIDs, realm)
 	if err != nil {
-		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get clans: %w", err)}}
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get clans: %s", err.Error()), WillRetry: true}
+		}
+		return result, playerIDs
 	}
 
 	// Save all snapshots in goroutines
 	var wg sync.WaitGroup
-	var failed = make(chan helpers.FailedUpdate, len(accountData))
+	var retry = make(chan string, len(accountData))
+	var result = make(chan helpers.UpdateResult, len(accountData))
 	for _, id := range playerIDs {
 		wg.Add(1)
 		account := accountData[id]
@@ -38,14 +48,14 @@ func updateAccounts(realm string, playerIDs []string) []helpers.FailedUpdate {
 			defer wg.Done()
 			if account.AccountID == 0 || id == "" {
 				// This should never happen but just in case
-				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("account not found")}
+				result <- helpers.UpdateResult{AccountID: id, Error: "account not found"}
 				return
 			}
 
 			var accountInfo stats.AccountInfo
 			accountInfo.AccountID = int(account.AccountID)
 			accountInfo.Nickname = account.Nickname
-			accountInfo.Realm = realm
+			accountInfo.Realm = strings.ToUpper(realm)
 
 			var clanInfo stats.AccountClan
 			if clan.ClanID != 0 {
@@ -59,18 +69,26 @@ func updateAccounts(realm string, playerIDs []string) []helpers.FailedUpdate {
 
 			err := database.UpsertAccountInfo(accountInfo)
 			if err != nil {
-				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to update account info: %w", err)}
+				retry <- id
+				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to update account info: %s", err.Error()), WillRetry: true}
 				return
 			}
+
+			result <- helpers.UpdateResult{AccountID: id, Success: true}
 		}(account, clan, id)
 
 	}
 	wg.Wait()
-	close(failed)
+	close(result)
+	close(retry)
 
-	var failedUpdates []helpers.FailedUpdate
-	for failedUpdate := range failed {
-		failedUpdates = append(failedUpdates, failedUpdate)
+	var results []helpers.UpdateResult
+	for r := range result {
+		results = append(results, r)
 	}
-	return failedUpdates
+	var retryIDs []string
+	for id := range retry {
+		retryIDs = append(retryIDs, id)
+	}
+	return results, retryIDs
 }

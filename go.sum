@@ -50,10 +50,10 @@ github.com/GoogleCloudPlatform/functions-framework-go v1.6.1 h1:xy2RD54qi/vya4c+
 github.com/GoogleCloudPlatform/functions-framework-go v1.6.1/go.mod h1:pq+lZy4vONJ5fjd3q/B6QzWhfHPAbuVweLpxZzMOb9Y=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
-github.com/byvko-dev/am-core v1.3.0 h1:tP7msH3TOZHVdqAz7kWLof51dm0dW36k0HQVYyy8Na4=
-github.com/byvko-dev/am-core v1.3.0/go.mod h1:y18p/sMIn1XkeMSowe5Fv/T8faQl6RJGX+itNdI8gbQ=
-github.com/byvko-dev/am-types v1.6.2 h1:yX2E2Fu3NcnMx5E6btC8sZjoMuvl1+cZFadFtinTftg=
-github.com/byvko-dev/am-types v1.6.2/go.mod h1:TCoD1hASh/YP+AT+Ueul35R20LWTpH1dGofrZNG/mK0=
+github.com/byvko-dev/am-core v1.3.1 h1:YMM5+vnF8we1C8g7Qwic8TAbZBR7Afi/Bef8o2bUuY8=
+github.com/byvko-dev/am-core v1.3.1/go.mod h1:y18p/sMIn1XkeMSowe5Fv/T8faQl6RJGX+itNdI8gbQ=
+github.com/byvko-dev/am-types v1.6.4 h1:0sy8fToBW3PH8ey6Y07E/eU2Ad4RkWFyynxVUdV+HUg=
+github.com/byvko-dev/am-types v1.6.4/go.mod h1:TCoD1hASh/YP+AT+Ueul35R20LWTpH1dGofrZNG/mK0=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

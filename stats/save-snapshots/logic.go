@@ -8,36 +8,27 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
+	"github.com/byvko-dev/am-cloud-functions/core/helpers"
 	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v1/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 	wg "github.com/cufee/am-wg-proxy-next/client"
 )
 
-type FailedUpdate struct {
-	AccountID string
-	Err       error
-}
-
-func getRealmPlayers(realm string) ([]string, error) {
-	// TODO
-	return nil, errors.New("not implemented")
-}
-
-func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []FailedUpdate {
+func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []helpers.FailedUpdate {
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
-		return []FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get accounts: %w", err)}}
+		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get accounts: %w", err)}}
 	}
 	achievementsData, err := client.BulkGetAccountsAchievements(playerIDs, realm)
 	if err != nil {
-		return []FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get achievements: %w", err)}}
+		return []helpers.FailedUpdate{{AccountID: "all", Err: fmt.Errorf("failed to get achievements: %w", err)}}
 	}
 
 	// Save all snapshots in goroutines
 	var wg sync.WaitGroup
-	var failed = make(chan FailedUpdate, len(accountData))
+	var failed = make(chan helpers.FailedUpdate, len(accountData))
 	for _, id := range playerIDs {
 		wg.Add(1)
 		account := accountData[id]
@@ -45,7 +36,7 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []Fail
 			defer wg.Done()
 			if account.AccountID == 0 || id == "" {
 				// This should never happen but just in case
-				failed <- FailedUpdate{AccountID: id, Err: errors.New("account not found")}
+				failed <- helpers.FailedUpdate{AccountID: id, Err: errors.New("account not found")}
 				return
 			}
 
@@ -70,7 +61,7 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []Fail
 			// Get vehicle stats
 			vehicles, e := client.GetAccountVehicles(int(account.AccountID))
 			if e != nil {
-				failed <- FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to get vehicles: %s", e.Message)}
+				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to get vehicles: %s", e.Message)}
 				return
 			}
 
@@ -90,14 +81,14 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) []Fail
 			// Save to database
 			err := database.SavePlayerSnapshot(snapshot)
 			if err != nil {
-				failed <- FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to save snapshot: %w", err)}
+				failed <- helpers.FailedUpdate{AccountID: id, Err: fmt.Errorf("failed to save snapshot: %w", err)}
 			}
 		}(account, id)
 	}
 	wg.Wait()
 	close(failed)
 
-	var result []FailedUpdate
+	var result []helpers.FailedUpdate
 	for err := range failed {
 		result = append(result, err)
 	}

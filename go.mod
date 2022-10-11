@@ -6,9 +6,10 @@ replace github.com/cufee/am-wg-proxy-next => ../am-wg-proxy
 
 require (
 	github.com/GoogleCloudPlatform/functions-framework-go v1.6.1
-	github.com/byvko-dev/am-core v1.3.0
-	github.com/byvko-dev/am-types v1.6.2
-	github.com/cufee/am-wg-proxy-next v1.2.0
+	github.com/byvko-dev/am-core v1.3.1
+	github.com/byvko-dev/am-types v1.6.4
+	github.com/cufee/am-wg-proxy-next v1.2.4
+	go.mongodb.org/mongo-driver v1.10.1
 )
 
 require (
@@ -27,7 +28,6 @@ require (
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
-	go.mongodb.org/mongo-driver v1.10.1 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect

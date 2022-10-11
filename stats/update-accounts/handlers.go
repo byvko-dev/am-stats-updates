@@ -1,4 +1,4 @@
-package savesnapshots
+package updateplayers
 
 import (
 	"encoding/json"
@@ -19,41 +19,41 @@ type Payload struct {
 
 func init() {
 	// Register an HTTP function with the Functions Framework
-	functions.HTTP("SaveRealmSnapshots", HTTPSaveRealmSnapshots)
-	functions.HTTP("SaveAccountSnapshots", HTTPSaveAccountSnapshots)
+	functions.HTTP("UpdateRealmPlayers", HTTPUpdateRealmPlayers)
+	functions.HTTP("UpdateSomePlayers", HTTPUpdateSomePlayers)
 }
 
-// SaveRealmSnapshots generates and saves snapshots for all players on a realm
-func HTTPSaveRealmSnapshots(w http.ResponseWriter, r *http.Request) {
+// HTTPUpdateRealmPlayers updates all players on a realm
+func HTTPUpdateRealmPlayers(w http.ResponseWriter, r *http.Request) {
 	// Decode the request body into a struct.
 	var request Payload
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		helpers.ReplyError(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
-
 	if request.Realm == "" {
 		helpers.ReplyError(w, "missing realm", http.StatusBadRequest)
 		return
 	}
 
-	// Get players on realm from database
-	playerIDs, err := database.GetRealmAccountIDs(request.Realm)
+	ids, err := database.GetRealmAccountIDs(request.Realm)
 	if err != nil {
+		helpers.ReplyError(w, "failed to get realm accounts", http.StatusInternalServerError)
 		return
 	}
-	var ids []string
-	for _, id := range playerIDs {
-		ids = append(ids, strconv.Itoa(id))
+
+	idsStr := make([]string, 0, len(ids))
+	for _, id := range ids {
+		idsStr = append(idsStr, strconv.Itoa(id))
 	}
 
-	updateErrors := savePlayerSnapshots(request.Realm, ids, true)
+	updateErrors := updateAccounts(request.Realm, idsStr)
 	if len(updateErrors) > 0 {
 		badIds := make([]string, 0, len(updateErrors))
 		for _, err := range updateErrors {
 			badIds = append(badIds, err.AccountID)
 		}
-		helpers.ReplyError(w, "failed to save snapshots for: "+strings.Join(badIds, ","), http.StatusInternalServerError)
+		helpers.ReplyError(w, "failed to update accounts: "+strings.Join(badIds, ","), http.StatusInternalServerError)
 		return
 	}
 
@@ -61,16 +61,11 @@ func HTTPSaveRealmSnapshots(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "OK")
 }
 
-// SaveAccountSnapshots generates and saves snapshots for all player ids passed in
-func HTTPSaveAccountSnapshots(w http.ResponseWriter, r *http.Request) {
+// UpdateSomePlayers updates all player ids passed in
+func HTTPUpdateSomePlayers(w http.ResponseWriter, r *http.Request) {
 	var request Payload
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		helpers.ReplyError(w, "failed to decode body", http.StatusBadRequest)
-		return
-	}
-
-	if request.Realm == "" {
-		helpers.ReplyError(w, "missing realm", http.StatusBadRequest)
 		return
 	}
 	if len(request.PlayerIDs) == 0 {
@@ -78,13 +73,13 @@ func HTTPSaveAccountSnapshots(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateErrors := savePlayerSnapshots(request.Realm, request.PlayerIDs, true)
+	updateErrors := updateAccounts(request.Realm, request.PlayerIDs)
 	if len(updateErrors) > 0 {
 		badIds := make([]string, 0, len(updateErrors))
 		for _, err := range updateErrors {
 			badIds = append(badIds, err.AccountID)
 		}
-		helpers.ReplyError(w, "failed to save snapshots for: "+strings.Join(badIds, ","), http.StatusInternalServerError)
+		helpers.ReplyError(w, "failed to update accounts: "+strings.Join(badIds, ","), http.StatusInternalServerError)
 		return
 	}
 

@@ -1,18 +1,50 @@
 package database
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	"github.com/byvko-dev/am-core/mongodb/driver"
 	"github.com/byvko-dev/am-types/stats/v3"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const collectionAccounts = "accounts"
 
-func SaveAccountInfo(snapshot stats.AccountSnapshot) error {
+func UpsertAccountInfo(info stats.AccountInfo) error {
 	client, err := driver.NewClient()
 	if err != nil {
 		return err
 	}
+	update := make(map[string]interface{})
+	update["$set"] = info
 
-	_, err = client.InsertDocument(collectionSnapshots, snapshot)
-	return err
+	return client.UpdateDocumentWithFilter(collectionAccounts, bson.M{"account_id": info.AccountID}, update, true)
+}
+
+func GetRealmAccountIDs(realm string) ([]int, error) {
+	client, err := driver.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := client.Raw(collectionAccounts).Distinct(ctx, "account_id", bson.M{"realm": realm})
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []int
+	for _, idRaw := range result {
+		id, ok := idRaw.(int)
+		if !ok {
+			return nil, errors.New("failed to convert account id to int")
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, err
 }

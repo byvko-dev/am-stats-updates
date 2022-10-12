@@ -27,11 +27,14 @@ func CreateRealmTasks(client *messaging.Client, taskType, realm string, tries in
 		return err
 	}
 
+	if len(idsInt) == 0 {
+		return nil
+	}
+
 	var ids []string
 	for _, id := range idsInt {
 		ids = append(ids, strconv.Itoa(id))
 	}
-
 	// Split the ids into chunks of 100
 	chunks := make([][]string, 0, len(ids)/100)
 	for i := 0; i < len(ids); i += 100 {

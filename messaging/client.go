@@ -3,7 +3,6 @@ package messaging
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/byvko-dev/am-core/logs"
@@ -51,22 +50,12 @@ func (s *Client) Publish(message []byte, attributes map[string]string) (string, 
 }
 
 // Subscribe to the topic with timeout
-func (s *Client) Subscribe(subscription string, timeout time.Duration, callback func([]byte) error, onExit func()) error {
+func (s *Client) Subscribe(subscription string, callback func([]byte) error, cancel chan int) error {
 	sub := s.client.Subscription(subscription)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Start a timer to stop the subscriber after timeout
-	timer := time.NewTimer(timeout)
-	go func() {
-		<-timer.C
-		cancel()
-		onExit()
-	}()
+	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		logs.Info("Received message: %v", string(msg.ID))
-
-		timer.Reset(timeout) // Reset the timer
 		err := callback(msg.Data)
 		if err != nil {
 			fmt.Printf("message %v will be nacked, callback returned an error: %v", msg.ID, err)
@@ -76,7 +65,11 @@ func (s *Client) Subscribe(subscription string, timeout time.Duration, callback 
 		}
 	})
 	if err != nil {
+		cancelCtx()
 		return fmt.Errorf("pubsub: Receive: %v", err)
 	}
+
+	<-cancel
+	cancelCtx()
 	return nil
 }

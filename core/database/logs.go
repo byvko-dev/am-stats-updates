@@ -17,6 +17,10 @@ type Log struct {
 }
 
 func AddUpdateLogs(logs []helpers.UpdateResult, taskType string) error {
+	if len(logs) == 0 {
+		return nil
+	}
+
 	client, err := driver.NewClient()
 	if err != nil {
 		return err

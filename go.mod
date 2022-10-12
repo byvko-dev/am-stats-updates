@@ -5,9 +5,9 @@ go 1.19
 require (
 	cloud.google.com/go/compute v1.5.0
 	cloud.google.com/go/pubsub v1.3.1
-	github.com/byvko-dev/am-core v1.3.1
+	github.com/byvko-dev/am-core v1.3.2
 	github.com/byvko-dev/am-types v1.6.4
-	github.com/cufee/am-wg-proxy-next v1.2.4
+	github.com/cufee/am-wg-proxy-next v1.2.7
 	go.mongodb.org/mongo-driver v1.10.1
 	golang.org/x/net v0.0.0-20220325170049-de3da57026de
 )

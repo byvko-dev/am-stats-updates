@@ -11,12 +11,42 @@ env:
   K8S_TYPE: Deployment
 
 tasks:
+  build-worker:
+    desc: Build, tag and load the image. Add '-- load' to load into docker.
+    env:
+      FLAVOR: worker
+    cmds:
+      - docker buildx build --platform linux/amd64 -f Dockerfile.$FLAVOR -t $REGISTRY/$BASE_APP_NAME-$FLAVOR:{{.VERSION}} -t $REGISTRY/$BASE_APP_NAME-$FLAVOR:latest --{{.CLI_ARGS | default "push"}} --secret id=ssh_priv,src=$HOME/.ssh/id_rsa --secret id=ssh_pub,src=$HOME/.ssh/id_rsa.pub .
+
+  build-scheduler:
+    desc: Build, tag and load the image. Add '-- load' to load into docker.
+    env:
+      FLAVOR: scheduler
+    cmds:
+      - docker buildx build --platform linux/amd64 -f Dockerfile.$FLAVOR -t $REGISTRY/$BASE_APP_NAME-$FLAVOR:{{.VERSION}} -t $REGISTRY/$BASE_APP_NAME-$FLAVOR:latest --{{.CLI_ARGS | default "push"}} --secret id=ssh_priv,src=$HOME/.ssh/id_rsa --secret id=ssh_pub,src=$HOME/.ssh/id_rsa.pub .
+
   build:
     desc: Build, tag and load the image. Add '-- load' to load into docker.
     cmds:
-      - docker buildx build --platform linux/amd64 -t $REGISTRY/$BASE_APP_NAME:{{.VERSION}} -t $REGISTRY/$BASE_APP_NAME:latest --{{.CLI_ARGS | default "push"}} --secret id=ssh_priv,src=$HOME/.ssh/id_rsa --secret id=ssh_pub,src=$HOME/.ssh/id_rsa.pub .
+      - task: build-worker
+      - task: build-scheduler
+
+  restart-worker:
+    desc: Restart k8s deployment
+    env:
+      APP_NAME: "{{.BASE_APP_NAME}}-worker"
+    cmds:
+      - kubectl rollout restart $K8S_TYPE/$APP_NAME -n $NAMESPACE
+
+  restart-scheduler:
+    desc: Restart k8s deployment
+    env:
+      APP_NAME: "{{.BASE_APP_NAME}}-scheduler"
+    cmds:
+      - kubectl rollout restart $K8S_TYPE/$APP_NAME -n $NAMESPACE
 
   restart:
-    desc: Restart k8s deployment
+    desc: Restart k8s deployment for worker and scheduler
     cmds:
-      - kubectl rollout restart $K8S_TYPE/$BASE_APP_NAME -n $NAMESPACE
+      - task: restart-worker
+      - task: restart-scheduler

@@ -3,7 +3,6 @@ package stats
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
@@ -14,20 +13,15 @@ import (
 	"github.com/byvko-dev/am-core/logs"
 )
 
-func StartUpdateWorkers(client *messaging.Client, subscription string, timeout time.Duration) error {
-	block := make(chan bool)
-
+func StartUpdateWorkers(client *messaging.Client, subscription string, cancel chan int) error {
 	var handlerWrapper = func(data []byte) error {
 		return handler(client, data)
 	}
 
-	err := client.Subscribe(subscription, timeout, handlerWrapper, func() { block <- true })
+	err := client.Subscribe(subscription, handlerWrapper, cancel)
 	if err != nil {
 		return err
 	}
-
-	// Wait for timeout or exit
-	<-block
 	return nil
 }
 

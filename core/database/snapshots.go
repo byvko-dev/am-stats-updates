@@ -33,7 +33,7 @@ func GetLastTotalBattles(accountId int, isManual bool) (int, error) {
 	var target stats.AccountSnapshot
 	filter := bson.M{"account_id": accountId, "is_manual": isManual}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	var opts options.FindOneOptions

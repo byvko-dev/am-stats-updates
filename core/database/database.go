@@ -12,7 +12,7 @@ func init() {
 	// Initialize the mongodb connection
 	mongoUri := env.MustGet("MONGO_URI")[0].(string)
 	databaseName := env.MustGet("MONGO_DATABASE")[0].(string)
-	err := driver.InitGlobalConnection(mongoUri, databaseName, time.Second*30)
+	err := driver.InitGlobalConnection(mongoUri, databaseName, time.Minute*1)
 	if err != nil {
 		panic(err)
 	}

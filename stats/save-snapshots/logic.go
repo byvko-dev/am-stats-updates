@@ -8,6 +8,7 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
+	"github.com/byvko-dev/am-core/logs"
 	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v1/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
@@ -16,6 +17,7 @@ import (
 
 func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]helpers.UpdateResult, []string) {
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
+	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
 		var result = make([]helpers.UpdateResult, len(playerIDs))
@@ -24,6 +26,8 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 		}
 		return result, playerIDs
 	}
+
+	logs.Debug("Requesting %v account clans", len(playerIDs))
 	achievementsData, err := client.BulkGetAccountsAchievements(playerIDs, realm)
 	if err != nil {
 		var result = make([]helpers.UpdateResult, len(playerIDs))

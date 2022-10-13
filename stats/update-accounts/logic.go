@@ -9,6 +9,7 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
+	"github.com/byvko-dev/am-core/logs"
 	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v1/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v1/clans"
@@ -21,6 +22,7 @@ func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, [
 	}
 
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30, opts)
+	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
 		var result = make([]helpers.UpdateResult, len(playerIDs))
@@ -30,6 +32,7 @@ func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, [
 		return result, playerIDs
 	}
 
+	logs.Debug("Requesting %d account clans", len(playerIDs))
 	clansData, err := client.BulkGetAccountsClans(playerIDs, realm)
 	if err != nil {
 		var result = make([]helpers.UpdateResult, len(playerIDs))

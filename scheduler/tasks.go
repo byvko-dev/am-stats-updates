@@ -5,11 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"encoding/json"
-
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
-	"github.com/byvko-dev/am-cloud-functions/messaging"
 )
 
 const (
@@ -17,7 +14,7 @@ const (
 	TaskTypeAccountUpdate = "accountUpdate"
 )
 
-func CreateRealmTasks(client *messaging.Client, taskType, realm string, tries int) error {
+func CreateRealmTasks(taskType, realm string, tries int) error {
 	if taskType != TaskTypeSnapshot && taskType != TaskTypeAccountUpdate {
 		return errors.New("invalid task type")
 	}
@@ -45,26 +42,15 @@ func CreateRealmTasks(client *messaging.Client, taskType, realm string, tries in
 		chunks = append(chunks, ids[i:end])
 	}
 
+	var tasks []helpers.Payload
 	for _, chunk := range chunks {
 		var payload helpers.Payload
 		payload.Type = taskType
 		payload.Realm = strings.ToUpper(realm)
 		payload.PlayerIDs = chunk
 		payload.TriesLeft = tries
-
-		data, err := json.Marshal(payload)
-		if err != nil {
-			return err
-		}
-
-		// Set attributes for message filtering
-		attr := make(map[string]string)
-		attr["type"] = taskType
-
-		_, err = client.Publish(data, attr)
-		if err != nil {
-			return err
-		}
+		tasks = append(tasks, payload)
 	}
-	return err
+
+	return AddQueueItems(tasks...)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
+	"github.com/byvko-dev/am-core/logs"
 )
 
 // UpdateRealmPlayers updates all players on a realm
@@ -15,6 +16,7 @@ func UpdateRealmPlayers(realm string) ([]helpers.UpdateResult, []string, error) 
 		return nil, nil, errors.New("missing realm")
 	}
 
+	logs.Debug("Getting player ids for realm %s", realm)
 	ids, err := database.GetRealmAccountIDs(realm)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get realm accounts: %w", err)
@@ -25,6 +27,7 @@ func UpdateRealmPlayers(realm string) ([]helpers.UpdateResult, []string, error) 
 		idsStr = append(idsStr, strconv.Itoa(id))
 	}
 
+	logs.Debug("Updating %d players on realm %s", len(idsStr), realm)
 	return UpdateSomePlayers(realm, idsStr)
 }
 

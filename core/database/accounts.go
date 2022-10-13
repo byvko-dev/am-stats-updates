@@ -30,7 +30,7 @@ func GetRealmAccountIDs(realm string) ([]int, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	result, err := client.Raw(collectionAccounts).Distinct(ctx, "account_id", bson.M{"realm": strings.ToUpper(realm)})

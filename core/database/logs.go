@@ -35,7 +35,7 @@ func AddUpdateLogs(logs []helpers.UpdateResult, taskType string) error {
 		})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, err = client.Raw(collectionLogs).InsertMany(ctx, logsToInsert)
 	return err

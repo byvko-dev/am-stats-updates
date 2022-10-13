@@ -17,6 +17,7 @@ import (
 
 func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]helpers.UpdateResult, []string) {
 	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
+	defer client.Close()
 	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {

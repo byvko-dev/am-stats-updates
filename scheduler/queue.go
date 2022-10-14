@@ -18,9 +18,7 @@ func UpdateQueueItem(item helpers.Payload) error {
 }
 
 func MarkComplete(item helpers.Payload) error {
-	item.IsProcessing = false
-	item.TriesLeft = 0
-	return UpdateQueueItem(item)
+	return database.DeleteQueueItem(item.ID)
 }
 
 func ExecuteAllQueueTasks(concurrency int, expiration time.Duration, handler func(helpers.Payload)) {

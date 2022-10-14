@@ -6,6 +6,7 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/scheduler"
 	"github.com/byvko-dev/am-cloud-functions/stats"
+	"github.com/byvko-dev/am-core/helpers/env"
 	"github.com/byvko-dev/am-core/logs"
 	"github.com/robfig/cron/v3"
 )
@@ -19,21 +20,22 @@ func main() {
 		}
 	}()
 
-	runner := cron.New()
-
-	// Update players and sessions
-	runner.AddFunc("0 9 * * *", func() { createRealmTasks("NA") })    // NA
-	runner.AddFunc("0 1 * * *", func() { createRealmTasks("EU") })    // EU
-	runner.AddFunc("0 18 * * *", func() { createRealmTasks("ASIA") }) // ASIA
-
-	runner.Start()
+	withCron := env.MustGetString("WITH_CRON")
+	if withCron == "true" {
+		runner := cron.New()
+		// Update players and sessions
+		runner.AddFunc("0 9 * * *", func() { createRealmTasks("NA") })    // NA
+		runner.AddFunc("0 1 * * *", func() { createRealmTasks("EU") })    // EU
+		runner.AddFunc("0 18 * * *", func() { createRealmTasks("ASIA") }) // ASIA
+		runner.Start()
+		defer runner.Stop()
+	}
 
 	// Wait for system signals
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 	cancel <- 1
-	runner.Stop()
 	logs.Info("Shutting down...")
 }
 

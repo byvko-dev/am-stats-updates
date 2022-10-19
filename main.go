@@ -50,7 +50,7 @@ func startWebServer() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Realm is required"})
 		}
 
-		err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 25) // 3 tries per task
+		err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 50) // 3 tries per task
 		if err != nil {
 			logs.Error("Error creating snapshot tasks for realm: %s", realm)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -86,7 +86,8 @@ func startTaskQueue(cancel chan int) {
 }
 
 func startScheduler() func() context.Context {
-	withCron := strings.Split(env.MustGetString("POD_NAME"), "-")[1] == "0"
+	nameSlice := strings.Split(env.MustGetString("POD_NAME"), "-")
+	withCron := nameSlice[len(nameSlice)-1] == "0"
 	if withCron {
 		logs.Info("Starting cron jobs")
 		runner := cron.New()
@@ -101,12 +102,12 @@ func startScheduler() func() context.Context {
 }
 
 func createRealmTasks(realm string) {
-	err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 25) // 3 tries per task
-	if err != nil {
-		logs.Error("Error creating snapshot tasks for realm: %s", realm)
-	}
-	err = scheduler.CreateRealmTasks(scheduler.TaskTypeAccountUpdate, realm, 3, 100) // 3 tries per task
+	err := scheduler.CreateRealmTasks(scheduler.TaskTypeAccountUpdate, realm, 3, 100) // 3 tries per task
 	if err != nil {
 		logs.Error("Error creating account update tasks for realm: %s", realm)
+	}
+	err = scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 50) // 3 tries per task
+	if err != nil {
+		logs.Error("Error creating snapshot tasks for realm: %s", realm)
 	}
 }

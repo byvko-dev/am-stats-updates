@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/byvko-dev/am-cloud-functions/core/database"
-	"github.com/byvko-dev/am-cloud-functions/core/helpers"
 	"github.com/byvko-dev/am-core/logs"
+	"github.com/byvko-dev/am-stats-updates/core/database"
+	"github.com/byvko-dev/am-stats-updates/core/helpers"
 )
 
 // SaveRealmSnapshots generates and saves snapshots for all players on a realm

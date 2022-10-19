@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/byvko-dev/am-cloud-functions/core/helpers"
 	"github.com/byvko-dev/am-core/mongodb/driver"
+	"github.com/byvko-dev/am-stats-updates/core/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

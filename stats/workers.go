@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/byvko-dev/am-cloud-functions/core/helpers"
-	"github.com/byvko-dev/am-cloud-functions/scheduler"
-	snapshots "github.com/byvko-dev/am-cloud-functions/stats/save-snapshots"
-	accounts "github.com/byvko-dev/am-cloud-functions/stats/update-accounts"
 	"github.com/byvko-dev/am-core/helpers/env"
 	"github.com/byvko-dev/am-core/logs"
+	"github.com/byvko-dev/am-stats-updates/core/helpers"
+	"github.com/byvko-dev/am-stats-updates/scheduler"
+	snapshots "github.com/byvko-dev/am-stats-updates/stats/save-snapshots"
+	accounts "github.com/byvko-dev/am-stats-updates/stats/update-accounts"
 )
 
 func StartUpdateWorkers(cancel chan int) error {

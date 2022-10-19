@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byvko-dev/am-cloud-functions/core/database"
-	"github.com/byvko-dev/am-cloud-functions/core/helpers"
 	"github.com/byvko-dev/am-core/logs"
+	"github.com/byvko-dev/am-stats-updates/core/database"
+	"github.com/byvko-dev/am-stats-updates/core/helpers"
 	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v1/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"

@@ -1,4 +1,4 @@
-module github.com/byvko-dev/am-cloud-functions
+module github.com/byvko-dev/am-stats-updates
 
 go 1.19
 

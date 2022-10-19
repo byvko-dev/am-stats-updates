@@ -6,9 +6,9 @@ vars:
 
 env:
   BASE_APP_NAME: am-stats-update
-  NAMESPACE: aftermath-services
+  NAMESPACE: aftermath-stats
   REGISTRY: us-east4-docker.pkg.dev/aftermath-327212/aftermath-images
-  K8S_TYPE: Deployment
+  K8S_TYPE: StatefulSet
 
 tasks:
   build:

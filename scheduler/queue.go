@@ -1,44 +1,34 @@
 package scheduler
 
 import (
-	"time"
+	"encoding/json"
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
-	"github.com/byvko-dev/am-core/logs"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/byvko-dev/am-cloud-functions/core/messaging"
 )
 
-func AddQueueItems(item ...helpers.Payload) error {
-	return database.AddQueueItems(item...)
+func SaveUpdateResults(results []helpers.UpdateResult, taskType string) error {
+	return database.UpsertUpdateLogs(results, taskType)
 }
 
-func UpdateQueueItem(item helpers.Payload) error {
-	return database.UpdateQueueItem(item)
-}
-
-func MarkComplete(item helpers.Payload) error {
-	item.IsProcessing = false
-	item.TriesLeft = 0
-	return UpdateQueueItem(item)
-}
-
-func ExecuteAllQueueTasks(concurrency int, expiration time.Duration, handler func(helpers.Payload)) {
-	limiter := make(chan int, concurrency)
-	for {
-		limiter <- 1
-		go func() {
-			data, err := database.GetNextTask(expiration)
-			if err != nil {
-				if err != mongo.ErrNoDocuments {
-					logs.Error("Failed to get next task: %s", err.Error())
-				}
-				time.Sleep(1 * time.Minute)
-			} else {
-				logs.Info("Executing queue task %s", data.ID.Hex())
-				handler(data)
-			}
-			<-limiter
-		}()
+func AddQueueItem(item helpers.UpdateTask) error {
+	task, err := json.Marshal(item)
+	if err != nil {
+		return err
 	}
+	return messaging.SendQueueMessage(messaging.QueueCacheUpdates, task)
+}
+
+func SubscribeToTasks(concurrency int, handler func(helpers.UpdateTask) error, cancel chan int) error {
+	handlerWrapper := func(payload []byte) error {
+		var task helpers.UpdateTask
+		err := json.Unmarshal(payload, &task)
+		if err != nil {
+			return err
+		}
+		return handler(task)
+	}
+
+	return messaging.SubscribeToQueue(messaging.QueueCacheUpdates, handlerWrapper, concurrency, cancel)
 }

@@ -3,6 +3,7 @@ package updateplayers
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,26 +22,37 @@ func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, [
 		Debug: true,
 	}
 
-	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30, opts)
+	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*60, opts)
 	defer client.Close()
 	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
 	if err != nil {
+		logs.Error("Failed to get accounts: %s", err.Error())
 		var result = make([]helpers.UpdateResult, len(playerIDs))
 		for i, id := range playerIDs {
 			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get accounts: %s", err.Error()), WillRetry: true}
 		}
 		return result, playerIDs
 	}
+	if len(accountData) == 0 {
+		logs.Error("No accounts returned")
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: "no accounts returned", WillRetry: true}
+		}
+		return result, playerIDs
+	}
 
 	logs.Debug("Requesting %d account clans", len(playerIDs))
 	clansData, err := client.BulkGetAccountsClans(playerIDs, realm)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "SOURCE_NOT_AVAILABLE") { // Ignore SOURCE_NOT_AVAILABLE error, it's not critical
+		logs.Error("Failed to get clans: %s", err.Error())
 		var result = make([]helpers.UpdateResult, len(playerIDs))
 		for i, id := range playerIDs {
 			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get clans: %s", err.Error()), WillRetry: true}
 		}
 		return result, playerIDs
+
 	}
 
 	// Save all snapshots in goroutines
@@ -55,8 +67,13 @@ func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, [
 		go func(account accounts.CompleteProfile, clan clans.MemberProfile, id string) {
 			defer wg.Done()
 			if account.AccountID == 0 || id == "" {
-				// This should never happen but just in case
 				result <- helpers.UpdateResult{AccountID: id, Error: "account not found"}
+
+				// This is a rare case where an account was deleted from WG servers
+				idInt, err := strconv.Atoi(id)
+				if err == nil {
+					database.DeleteAccount(idInt)
+				}
 				return
 			}
 

@@ -40,5 +40,6 @@ func SaveAccountSnapshots(realm string, accountIDs []string, isManual bool) ([]h
 	}
 
 	result, retryIds := savePlayerSnapshots(realm, accountIDs, isManual)
+	logs.Info("Updated %d players on realm %s", len(result), realm)
 	return result, retryIds, nil
 }

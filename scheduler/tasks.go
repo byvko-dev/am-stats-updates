@@ -7,6 +7,7 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/core/database"
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
+	"github.com/byvko-dev/am-core/logs"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	TaskTypeAccountUpdate = "accountUpdate"
 )
 
-func CreateRealmTasks(taskType, realm string, tries int) error {
+func CreateRealmTasks(taskType, realm string, tries, batchSize int) error {
 	if taskType != TaskTypeSnapshot && taskType != TaskTypeAccountUpdate {
 		return errors.New("invalid task type")
 	}
@@ -24,6 +25,8 @@ func CreateRealmTasks(taskType, realm string, tries int) error {
 		return err
 	}
 
+	logs.Debug("Creating tasks for realm %v with %v ids", realm, len(idsInt))
+
 	if len(idsInt) == 0 {
 		return nil
 	}
@@ -32,25 +35,27 @@ func CreateRealmTasks(taskType, realm string, tries int) error {
 	for _, id := range idsInt {
 		ids = append(ids, strconv.Itoa(id))
 	}
-	// Split the ids into chunks of 100
-	chunks := make([][]string, 0, len(ids)/100)
-	for i := 0; i < len(ids); i += 100 {
-		end := i + 100
+	// Split the ids into chunks of batchSize
+	chunks := make([][]string, 0, len(ids)/batchSize)
+	for i := 0; i < len(ids); i += batchSize {
+		end := i + batchSize
 		if end > len(ids) {
 			end = len(ids)
 		}
 		chunks = append(chunks, ids[i:end])
 	}
 
-	var tasks []helpers.Payload
 	for _, chunk := range chunks {
-		var payload helpers.Payload
+		var payload helpers.UpdateTask
 		payload.Type = taskType
 		payload.Realm = strings.ToUpper(realm)
 		payload.PlayerIDs = chunk
 		payload.TriesLeft = tries
-		tasks = append(tasks, payload)
-	}
 
-	return AddQueueItems(tasks...)
+		err := AddQueueItem(payload)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -6,6 +6,8 @@ import (
 
 	"github.com/byvko-dev/am-cloud-functions/core/helpers"
 	"github.com/byvko-dev/am-core/mongodb/driver"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const collectionLogs = "update-logs"
@@ -16,7 +18,7 @@ type Log struct {
 	Timestamp            time.Time `bson:"timestamp"`
 }
 
-func AddUpdateLogs(logs []helpers.UpdateResult, taskType string) error {
+func UpsertUpdateLogs(logs []helpers.UpdateResult, taskType string) error {
 	if len(logs) == 0 {
 		return nil
 	}
@@ -26,17 +28,21 @@ func AddUpdateLogs(logs []helpers.UpdateResult, taskType string) error {
 		return err
 	}
 
-	var logsToInsert []interface{}
+	var models []mongo.WriteModel
 	for _, log := range logs {
-		logsToInsert = append(logsToInsert, Log{
+		model := mongo.NewUpdateOneModel()
+		model.SetFilter(bson.M{"accountID": log.AccountID, "task": taskType})
+		model.SetUpdate(bson.M{"$set": Log{
 			Task:         taskType,
 			UpdateResult: log,
 			Timestamp:    time.Now(),
-		})
+		}})
+		model.SetUpsert(true)
+		models = append(models, model)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	_, err = client.Raw(collectionLogs).InsertMany(ctx, logsToInsert)
+	_, err = client.Raw(collectionLogs).BulkWrite(ctx, models)
 	return err
 }

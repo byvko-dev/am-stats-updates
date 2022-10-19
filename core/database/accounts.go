@@ -24,6 +24,15 @@ func UpsertAccountInfo(info stats.AccountInfo) error {
 	return client.UpdateDocumentWithFilter(collectionAccounts, bson.M{"account_id": info.AccountID}, update, true)
 }
 
+func DeleteAccount(id int) error {
+	client, err := driver.NewClient()
+	if err != nil {
+		return err
+	}
+	_, err = client.Raw(collectionAccounts).DeleteOne(context.Background(), bson.M{"account_id": id})
+	return err
+}
+
 func GetRealmAccountIDs(realm string) ([]int, error) {
 	client, err := driver.NewClient()
 	if err != nil {

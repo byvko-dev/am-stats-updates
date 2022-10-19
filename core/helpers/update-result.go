@@ -2,8 +2,8 @@ package helpers
 
 type UpdateResult struct {
 	AccountID string `json:"accountID" bson:"accountID"`
-	Success   bool   `json:"success" bson:"success"`
 
 	WillRetry bool   `json:"willRetry" bson:"willRetry"`
+	Success   bool   `json:"success" bson:"success"`
 	Error     string `json:"error" bson:"error,omitempty"`
 }

@@ -41,5 +41,6 @@ func UpdateSomePlayers(realm string, accountIDs []string) ([]helpers.UpdateResul
 	}
 
 	result, retryIds := updateAccounts(realm, accountIDs)
+	logs.Info("Updated %d players on realm %s", len(result), realm)
 	return result, retryIds, nil
 }

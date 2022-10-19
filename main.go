@@ -1,50 +1,111 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
+	"strings"
 
+	"github.com/byvko-dev/am-cloud-functions/core/messaging"
 	"github.com/byvko-dev/am-cloud-functions/scheduler"
 	"github.com/byvko-dev/am-cloud-functions/stats"
 	"github.com/byvko-dev/am-core/helpers/env"
 	"github.com/byvko-dev/am-core/logs"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/robfig/cron/v3"
 )
 
 func main() {
+	// Task workers
 	cancel := make(chan int, 1)
-	go func() {
-		err := stats.StartUpdateWorkers(cancel) // Will execute all tasks in the queue every 5 min
-		if err != nil {
-			panic(err)
-		}
-	}()
+	go startTaskQueue(cancel)
 
-	withCron := env.MustGetString("WITH_CRON")
-	if withCron == "true" {
-		runner := cron.New()
-		// Update players and sessions
-		runner.AddFunc("0 9 * * *", func() { createRealmTasks("NA") })    // NA
-		runner.AddFunc("0 1 * * *", func() { createRealmTasks("EU") })    // EU
-		runner.AddFunc("0 18 * * *", func() { createRealmTasks("ASIA") }) // ASIA
-		runner.Start()
-		defer runner.Stop()
-	}
+	// Task scheduler
+	stopScheduler := startScheduler()
+
+	// Web server
+	go startWebServer()
 
 	// Wait for system signals
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 	cancel <- 1
+	stopScheduler()
 	logs.Info("Shutting down...")
 }
 
+func startWebServer() {
+	app := fiber.New()
+	app.Use(logger.New())
+
+	v1 := app.Group("/v1")
+
+	realm := v1.Group("/realm/:realm")
+	// Reset all sessions on realm
+	realm.Get("/reset-sessions", func(c *fiber.Ctx) error {
+		realm := c.Params("realm")
+		if realm == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Realm is required"})
+		}
+
+		err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 25) // 3 tries per task
+		if err != nil {
+			logs.Error("Error creating snapshot tasks for realm: %s", realm)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.SendStatus(fiber.StatusAccepted)
+	})
+	// Update all accounts on realm
+	realm.Get("/update-accounts", func(c *fiber.Ctx) error {
+		realm := c.Params("realm")
+		if realm == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Realm is required"})
+		}
+
+		err := scheduler.CreateRealmTasks(scheduler.TaskTypeAccountUpdate, realm, 3, 100) // 3 tries per task
+		if err != nil {
+			logs.Error("Error creating snapshot tasks for realm: %s", realm)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.SendStatus(fiber.StatusAccepted)
+	})
+
+	panic(app.Listen(":" + env.MustGetString("PORT")))
+}
+
+func startTaskQueue(cancel chan int) {
+	messaging.Connect(env.MustGetString("MESSAGING_URI"))
+	err := stats.StartUpdateWorkers(cancel) // Will execute all tasks in the queue every 5 min
+	if err != nil {
+		panic(err)
+	}
+}
+
+func startScheduler() func() context.Context {
+	withCron := strings.Split(env.MustGetString("POD_NAME"), "-")[1] == "0"
+	if withCron {
+		logs.Info("Starting cron jobs")
+		runner := cron.New()
+		// Update players and sessions
+		runner.AddFunc("0 9 * * *", func() { createRealmTasks("NA") })    // NA
+		runner.AddFunc("0 1 * * *", func() { createRealmTasks("EU") })    // EU
+		runner.AddFunc("0 18 * * *", func() { createRealmTasks("ASIA") }) // ASIA
+		runner.Start()
+		return runner.Stop
+	}
+	return func() context.Context { return context.Background() }
+}
+
 func createRealmTasks(realm string) {
-	err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3) // 3 tries per task
+	err := scheduler.CreateRealmTasks(scheduler.TaskTypeSnapshot, realm, 3, 25) // 3 tries per task
 	if err != nil {
 		logs.Error("Error creating snapshot tasks for realm: %s", realm)
 	}
-	err = scheduler.CreateRealmTasks(scheduler.TaskTypeAccountUpdate, realm, 3) // 3 tries per task
+	err = scheduler.CreateRealmTasks(scheduler.TaskTypeAccountUpdate, realm, 3, 100) // 3 tries per task
 	if err != nil {
 		logs.Error("Error creating account update tasks for realm: %s", realm)
 	}

@@ -3,6 +3,7 @@ package savesnapshots
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]helpers.UpdateResult, []string) {
-	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*30)
+	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*60)
 	defer client.Close()
 	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)
@@ -24,6 +25,14 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 		var result = make([]helpers.UpdateResult, len(playerIDs))
 		for i, id := range playerIDs {
 			result[i] = helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get accounts: %s", err.Error()), WillRetry: true}
+		}
+		return result, playerIDs
+	}
+	if len(accountData) == 0 {
+		logs.Error("No accounts returned")
+		var result = make([]helpers.UpdateResult, len(playerIDs))
+		for i, id := range playerIDs {
+			result[i] = helpers.UpdateResult{AccountID: id, Error: "no accounts returned", WillRetry: true}
 		}
 		return result, playerIDs
 	}
@@ -48,8 +57,13 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 		go func(account accounts.CompleteProfile, id string) {
 			defer wg.Done()
 			if account.AccountID == 0 || id == "" {
-				// This should never happen but just in case
 				result <- helpers.UpdateResult{AccountID: id, Error: "account not found"}
+
+				// This is a rare case where an account was deleted from WG servers
+				idInt, err := strconv.Atoi(id)
+				if err == nil {
+					database.DeleteAccount(idInt)
+				}
 				return
 			}
 

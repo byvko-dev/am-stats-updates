@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-core/mongodb/driver"
-	"github.com/byvko-dev/am-core/stats/blitzstars/v1"
+	"github.com/byvko-dev/am-core/stats/blitzstars/v1/types"
 	"github.com/byvko-dev/am-types/stats/v3"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,13 +15,13 @@ import (
 const collectionVehiclesGlossary = "vehicle-glossary"
 const collectionAchievementsGlossary = "achievement-glossary"
 
-func GetVehicleInfo(tankId int) (blitzstars.TankAverages, error) {
+func GetVehicleInfo(tankId int) (types.TankAverages, error) {
 	client, err := driver.NewClient()
 	if err != nil {
-		return blitzstars.TankAverages{}, err
+		return types.TankAverages{}, err
 	}
 
-	var data blitzstars.TankAverages
+	var data types.TankAverages
 	filter := make(map[string]interface{})
 	filter["tankId"] = tankId
 	return data, client.GetDocumentWithFilter(collectionVehiclesGlossary, filter, &data)

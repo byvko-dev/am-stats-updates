@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/byvko-dev/am-core/stats/blitzstars/v1"
-	"github.com/byvko-dev/am-core/stats/ratings/wn8/v1"
+	blitzstars "github.com/byvko-dev/am-core/stats/blitzstars/v1/types"
+	wn8 "github.com/byvko-dev/am-core/stats/ratings/wn8/v1"
 	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v2/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"

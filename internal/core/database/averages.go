@@ -5,26 +5,26 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-core/mongodb/driver"
-	"github.com/byvko-dev/am-core/stats/blitzstars/v1"
+	"github.com/byvko-dev/am-core/stats/blitzstars/v1/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const collectionAverages = "vehicle-averages"
 
-func GetTankAverages(tankId int) (blitzstars.TankAverages, error) {
+func GetTankAverages(tankId int) (types.TankAverages, error) {
 	client, err := driver.NewClient()
 	if err != nil {
-		return blitzstars.TankAverages{}, err
+		return types.TankAverages{}, err
 	}
 
-	var data blitzstars.TankAverages
+	var data types.TankAverages
 	filter := make(map[string]interface{})
 	filter["tankId"] = tankId
 	return data, client.GetDocumentWithFilter(collectionAverages, filter, &data)
 }
 
-func UpdateTanksAverages(data ...blitzstars.TankAverages) error {
+func UpdateTanksAverages(data ...types.TankAverages) error {
 	if len(data) == 0 {
 		return nil
 	}

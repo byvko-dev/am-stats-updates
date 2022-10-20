@@ -2,6 +2,8 @@ package calculations
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	blitzstars "github.com/byvko-dev/am-core/stats/blitzstars/v1/types"
@@ -34,38 +36,52 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 	regularSnapshot.Achievements = accountAchievements
 
 	// Add vehicles
+	var wg sync.WaitGroup
+	vehicleStats := make(chan stats.VehicleStats, len(vehicles))
+
 	regularSnapshot.Vehicles = make(map[int]stats.VehicleStats)
+
+	var totalWN8 int32
+	var totalBattles int32
+
 	for _, vehicle := range vehicles {
-		averages, err := getAverage(vehicle.TankID)
-		ratings := make(map[string]int)
-		if err == nil {
-			rating, unweighted := wn8.VehicleWN8(vehicle, averages)
-			ratings[wn8.WN8] = rating
-			ratings[wn8.WN8Unweighted] = unweighted
-		}
-		regularSnapshot.Vehicles[vehicle.TankID] = stats.VehicleStats{
-			VehicleStatsFrame: vehicle,
-			Ratings:           ratings,
-			Achievements:      vehicleAchievements[vehicle.TankID],
-		}
+		wg.Add(1)
+		go func(vehicle statistics.VehicleStatsFrame) {
+			defer wg.Done()
+			averages, err := getAverage(vehicle.TankID)
+			ratings := make(map[string]int)
+			if err == nil {
+				rating, unweighted := wn8.VehicleWN8(vehicle, averages)
+				ratings[wn8.WN8] = rating
+				ratings[wn8.WN8Unweighted] = unweighted
+			}
+			vehicleStats <- stats.VehicleStats{
+				VehicleStatsFrame: vehicle,
+				Ratings:           ratings,
+				Achievements:      vehicleAchievements[vehicle.TankID],
+			}
+
+			// For career WN8 calculation
+			unweighted, ok := ratings[wn8.WN8Unweighted]
+			if ok {
+				atomic.AddInt32(&totalWN8, int32(unweighted))
+				atomic.AddInt32(&totalBattles, int32(vehicle.Stats.Battles))
+			}
+		}(vehicle)
+	}
+	wg.Wait()
+	close(vehicleStats)
+	for vehicle := range vehicleStats {
+		regularSnapshot.Vehicles[vehicle.TankID] = vehicle
+	}
+
+	// Calculate career WN8
+	if totalBattles > 0 {
+		regularSnapshot.Ratings = make(map[string]int)
+		regularSnapshot.Ratings["wn8"] = int(totalWN8 / totalBattles)
 	}
 
 	snapshot.Stats.Regular = regularSnapshot
-
-	// Career WN8
-	var totalWN8 int
-	var totalBattles int
-	for _, vehicle := range regularSnapshot.Vehicles {
-		unweighted, ok := vehicle.Ratings[wn8.WN8Unweighted]
-		if ok {
-			totalWN8 += unweighted
-			totalBattles += vehicle.Stats.Battles
-		}
-	}
-	if totalBattles > 0 {
-		regularSnapshot.Ratings = make(map[string]int)
-		regularSnapshot.Ratings["wn8"] = totalWN8 / totalBattles
-	}
 
 	return snapshot, nil
 }

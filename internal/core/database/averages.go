@@ -12,16 +12,25 @@ import (
 
 const collectionAverages = "vehicle-averages"
 
-func GetTankAverages(tankId int) (types.TankAverages, error) {
+func GetTankAverages(ids ...int) ([]types.TankAverages, error) {
 	client, err := driver.NewClient()
 	if err != nil {
-		return types.TankAverages{}, err
+		return nil, err
 	}
 
-	var data types.TankAverages
-	filter := make(map[string]interface{})
-	filter["tankId"] = tankId
-	return data, client.GetDocumentWithFilter(collectionAverages, filter, &data)
+	filter := bson.M{}
+	filter["tankId"] = bson.M{"$in": ids}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var data []types.TankAverages
+	cur, err := client.Raw(collectionAverages).Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, cur.All(ctx, &data)
 }
 
 func UpdateTanksAverages(data ...types.TankAverages) error {

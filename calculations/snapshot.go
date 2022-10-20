@@ -13,7 +13,7 @@ import (
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 )
 
-func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, vehiclesCutoffTime int, getAverage func(int) (blitzstars.TankAverages, error)) (stats.AccountSnapshot, error) {
+func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, vehiclesCutoffTime int, vehicleAverages map[int]blitzstars.TankAverages) (stats.AccountSnapshot, error) {
 	if account.AccountID == 0 {
 		return stats.AccountSnapshot{}, errors.New("invalid account id")
 	}
@@ -49,9 +49,9 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 		go func(vehicle statistics.VehicleStatsFrame) {
 			defer wg.Done()
 
-			averages, err := getAverage(vehicle.TankID)
+			averages, ok := vehicleAverages[vehicle.TankID]
 			ratings := make(map[string]int)
-			if err == nil {
+			if ok {
 				rating, unweighted := wn8.VehicleWN8(vehicle, averages)
 				ratings[wn8.WN8] = rating
 				ratings[wn8.WN8Unweighted] = unweighted

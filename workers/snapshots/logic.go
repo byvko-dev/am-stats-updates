@@ -91,11 +91,11 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 			snapshot.LastBattleTime = int(account.LastBattleTime)
 			snapshot.TotalBattles = int(account.Statistics.All.Battles + account.Statistics.Rating.Battles)
 
-			var ratingSnapshot stats.SnapshotStats
+			var ratingSnapshot stats.Frame
 			ratingSnapshot.Total = statistics.StatsFrame(account.Statistics.Rating)
 			snapshot.Stats.Rating = ratingSnapshot
 
-			var regularSnapshot stats.SnapshotStats
+			var regularSnapshot stats.Frame
 			regularSnapshot.Total = statistics.StatsFrame(account.Statistics.All)
 
 			// Add achievements
@@ -113,7 +113,7 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 			// TODO: no endpoint for this yet
 
 			// Add vehicles
-			regularSnapshot.Vehicles = make(map[int]stats.SnapshotVehicleStats)
+			regularSnapshot.Vehicles = make(map[int]stats.VehicleStats)
 			for _, vehicle := range vehicles {
 				averages, err := database.GetTankAverages(vehicle.TankID)
 				ratings := make(map[string]int)
@@ -122,7 +122,7 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 					ratings[wn8.WN8] = rating
 					ratings[wn8.WN8Unweighted] = unweighted
 				}
-				regularSnapshot.Vehicles[vehicle.TankID] = stats.SnapshotVehicleStats{
+				regularSnapshot.Vehicles[vehicle.TankID] = stats.VehicleStats{
 					VehicleStatsFrame: vehicle,
 					Ratings:           ratings,
 				}

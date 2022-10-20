@@ -42,6 +42,14 @@ func startWebServer() {
 
 	v1 := app.Group("/v1")
 
+	v1.Get("/update-glossary", func(c *fiber.Ctx) error {
+		err := scheduler.CreateGlossaryTasks(scheduler.TaskTypeUpdateGlossary, 3)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.SendStatus(fiber.StatusAccepted)
+	})
+
 	realm := v1.Group("/realm/:realm")
 	// Reset all sessions on realm
 	realm.Get("/reset-sessions", func(c *fiber.Ctx) error {

@@ -26,6 +26,7 @@ func StartUpdateWorkers(cancel chan int) error {
 
 func handler(payload helpers.UpdateTask) error {
 	switch payload.Type {
+	// Accounts update
 	case scheduler.TaskTypeAccountUpdate:
 		results, retryIds, err := accounts.UpdateSomePlayers(payload.Realm, payload.PlayerIDs)
 		defer func() {
@@ -48,6 +49,7 @@ func handler(payload helpers.UpdateTask) error {
 		}
 		return nil
 
+	// Record snapshots
 	case scheduler.TaskTypeSnapshot:
 		results, retryIds, err := snapshots.SaveAccountSnapshots(payload.Realm, payload.PlayerIDs, false)
 		defer func() {
@@ -70,9 +72,35 @@ func handler(payload helpers.UpdateTask) error {
 		}
 		return nil
 
-	case scheduler.TaskTypeUpdateGlossary:
-		err := glossary.UpdateGlossary()
+	// Update glossary vehicles
+	case scheduler.TaskTypeUpdateGlossaryVehicles:
+		err := glossary.UpdateVehiclesGlossary()
 		if err != nil {
+			logs.Error("Failed to update glossary: %v", err)
+			err := sendRetryMessage(payload.Type, payload.Realm, payload.PlayerIDs, payload.TriesLeft-1)
+			if err != nil {
+				return fmt.Errorf("failed to update glossary: %w", err)
+			}
+		}
+		return nil
+
+	// Update glossary averages
+	case scheduler.TaskTypeUpdateGlossaryAverages:
+		err := glossary.UpdateTankAverages()
+		if err != nil {
+			logs.Error("Failed to update glossary: %v", err)
+			err := sendRetryMessage(payload.Type, payload.Realm, payload.PlayerIDs, payload.TriesLeft-1)
+			if err != nil {
+				return fmt.Errorf("failed to update glossary: %w", err)
+			}
+		}
+		return nil
+
+	// Update glossary achievements
+	case scheduler.TaskTypeUpdateGlossaryAchievements:
+		err := glossary.UpdateAchievements()
+		if err != nil {
+			logs.Error("Failed to update glossary: %v", err)
 			err := sendRetryMessage(payload.Type, payload.Realm, payload.PlayerIDs, payload.TriesLeft-1)
 			if err != nil {
 				return fmt.Errorf("failed to update glossary: %w", err)
@@ -80,7 +108,6 @@ func handler(payload helpers.UpdateTask) error {
 		}
 		return nil
 	}
-
 	return nil
 }
 

@@ -11,11 +11,13 @@ import (
 	"github.com/byvko-dev/am-core/helpers/env"
 )
 
+var apiURL = env.MustGetString("WOT_INSPECTOR_API_URI")
+
 func GetWotInspectorTanks() (map[int]VehicleInfo, error) {
 	re := regexp.MustCompile(`(\d{1,9}):`)
 	tanks := make(map[int]VehicleInfo)
 
-	res, err := http.DefaultClient.Get(env.MustGetString("WOT_INSPECTOR_API_URI"))
+	res, err := http.DefaultClient.Get(apiURL)
 	if err != nil || res == nil || res.StatusCode != http.StatusOK {
 		return tanks, fmt.Errorf("status code: %+v. error: %s", res, err)
 	}

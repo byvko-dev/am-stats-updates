@@ -12,13 +12,15 @@ import (
 )
 
 const (
-	TaskTypeSnapshot       = "snapshotUpdate"
-	TaskTypeAccountUpdate  = "accountUpdate"
-	TaskTypeUpdateGlossary = "updateGlossary"
+	TaskTypeSnapshot                   = "snapshotUpdate"
+	TaskTypeAccountUpdate              = "accountUpdate"
+	TaskTypeUpdateGlossaryVehicles     = "updateGlossaryVehicles"
+	TaskTypeUpdateGlossaryAverages     = "updateGlossaryAverages"
+	TaskTypeUpdateGlossaryAchievements = "updateGlossaryAchievements"
 )
 
 func CreateGlossaryTasks(taskType string, tries int) error {
-	if taskType != TaskTypeUpdateGlossary {
+	if taskType != TaskTypeUpdateGlossaryVehicles && taskType != TaskTypeUpdateGlossaryAchievements && taskType != TaskTypeUpdateGlossaryAverages {
 		return errors.New("invalid task type")
 	}
 	logs.Info("Creating glossary tasks")

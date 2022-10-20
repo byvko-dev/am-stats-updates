@@ -6,7 +6,7 @@ import (
 
 	"github.com/byvko-dev/am-core/mongodb/driver"
 	"github.com/byvko-dev/am-stats-updates/core/blitzstars"
-	"github.com/byvko-dev/am-types/wargaming/v2/glossary"
+	"github.com/byvko-dev/am-types/stats/v3"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,10 +24,10 @@ func GetVehicleInfo(tankId int) (blitzstars.TankAverages, error) {
 	var data blitzstars.TankAverages
 	filter := make(map[string]interface{})
 	filter["tankId"] = tankId
-	return data, client.GetDocumentWithFilter(collectionAverages, filter, &data)
+	return data, client.GetDocumentWithFilter(collectionVehiclesGlossary, filter, &data)
 }
 
-func UpdateVehicleGlossary(data ...glossary.VehicleDetails) error {
+func UpdateVehicleGlossary(data ...stats.VehicleInfo) error {
 	if len(data) == 0 {
 		return nil
 	}
@@ -52,19 +52,19 @@ func UpdateVehicleGlossary(data ...glossary.VehicleDetails) error {
 	return err
 }
 
-func GetAchievementInfo(achievementId int) (glossary.AchievementDetails, error) {
+func GetAchievementInfo(achievementId int) (stats.AchievementInfo, error) {
 	client, err := driver.NewClient()
 	if err != nil {
-		return glossary.AchievementDetails{}, err
+		return stats.AchievementInfo{}, err
 	}
 
-	var data glossary.AchievementDetails
+	var data stats.AchievementInfo
 	filter := make(map[string]interface{})
 	filter["achievement_id"] = achievementId
 	return data, client.GetDocumentWithFilter(collectionAchievementsGlossary, filter, &data)
 }
 
-func UpdateAchievementsGlossary(data ...glossary.AchievementDetails) error {
+func UpdateAchievementsGlossary(data ...stats.AchievementInfo) error {
 	if len(data) == 0 {
 		return nil
 	}

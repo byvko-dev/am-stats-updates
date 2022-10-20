@@ -18,11 +18,7 @@ import (
 )
 
 func updateAccounts(realm string, playerIDs []string) ([]helpers.UpdateResult, []string) {
-	opts := wg.ClientOptons{
-		Debug: true,
-	}
-
-	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*60, opts)
+	client := wg.NewClient(os.Getenv("WG_PROXY_HOST"), time.Second*60)
 	defer client.Close()
 	logs.Debug("Requesting %d accounts", len(playerIDs))
 	accountData, err := client.BulkGetAccountsByID(playerIDs, realm)

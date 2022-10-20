@@ -43,8 +43,8 @@ func UpdateTanksAverages(data ...blitzstars.TankAverages) error {
 		models = append(models, model)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
-	_, err = client.Raw(collectionLogs).BulkWrite(ctx, models)
+	_, err = client.Raw(collectionAverages).BulkWrite(ctx, models)
 	return err
 }

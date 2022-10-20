@@ -1,4 +1,4 @@
-package stats
+package workers
 
 import (
 	"fmt"
@@ -8,8 +8,9 @@ import (
 	"github.com/byvko-dev/am-core/logs"
 	"github.com/byvko-dev/am-stats-updates/core/helpers"
 	"github.com/byvko-dev/am-stats-updates/scheduler"
-	snapshots "github.com/byvko-dev/am-stats-updates/stats/save-snapshots"
-	accounts "github.com/byvko-dev/am-stats-updates/stats/update-accounts"
+	accounts "github.com/byvko-dev/am-stats-updates/workers/accounts"
+	"github.com/byvko-dev/am-stats-updates/workers/glossary"
+	snapshots "github.com/byvko-dev/am-stats-updates/workers/snapshots"
 )
 
 func StartUpdateWorkers(cancel chan int) error {
@@ -66,6 +67,16 @@ func handler(payload helpers.UpdateTask) error {
 
 		if err != nil {
 			return fmt.Errorf("failed to save snapshots: %w", err)
+		}
+		return nil
+
+	case scheduler.TaskTypeUpdateGlossary:
+		err := glossary.UpdateGlossary()
+		if err != nil {
+			err := sendRetryMessage(payload.Type, payload.Realm, payload.PlayerIDs, payload.TriesLeft-1)
+			if err != nil {
+				return fmt.Errorf("failed to update glossary: %w", err)
+			}
 		}
 		return nil
 	}

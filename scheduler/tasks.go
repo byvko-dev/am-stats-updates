@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -11,9 +12,28 @@ import (
 )
 
 const (
-	TaskTypeSnapshot      = "snapshotUpdate"
-	TaskTypeAccountUpdate = "accountUpdate"
+	TaskTypeSnapshot       = "snapshotUpdate"
+	TaskTypeAccountUpdate  = "accountUpdate"
+	TaskTypeUpdateGlossary = "updateGlossary"
 )
+
+func CreateGlossaryTasks(taskType string, tries int) error {
+	if taskType != TaskTypeUpdateGlossary {
+		return errors.New("invalid task type")
+	}
+	logs.Info("Creating glossary tasks")
+
+	var payload helpers.UpdateTask
+	payload.Type = taskType
+	payload.TriesLeft = tries
+
+	err := AddQueueItem(payload)
+	if err != nil {
+		return fmt.Errorf("failed to add glossary task to queue: %w", err)
+	}
+
+	return nil
+}
 
 func CreateRealmTasks(taskType, realm string, tries, batchSize int) error {
 	if taskType != TaskTypeSnapshot && taskType != TaskTypeAccountUpdate {

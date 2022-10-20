@@ -1,4 +1,4 @@
-package updateplayers
+package accounts
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"github.com/byvko-dev/am-stats-updates/core/database"
 	"github.com/byvko-dev/am-stats-updates/core/helpers"
 	"github.com/byvko-dev/am-types/stats/v3"
-	"github.com/byvko-dev/am-types/wargaming/v1/accounts"
-	"github.com/byvko-dev/am-types/wargaming/v1/clans"
+	"github.com/byvko-dev/am-types/wargaming/v2/accounts"
+	"github.com/byvko-dev/am-types/wargaming/v2/clans"
 	wg "github.com/cufee/am-wg-proxy-next/client"
 )
 

@@ -10,7 +10,7 @@ import (
 	"github.com/byvko-dev/am-core/logs"
 	"github.com/byvko-dev/am-stats-updates/core/messaging"
 	"github.com/byvko-dev/am-stats-updates/scheduler"
-	"github.com/byvko-dev/am-stats-updates/stats"
+	"github.com/byvko-dev/am-stats-updates/workers"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/robfig/cron/v3"
@@ -79,7 +79,7 @@ func startWebServer() {
 
 func startTaskQueue(cancel chan int) {
 	messaging.Connect(env.MustGetString("MESSAGING_URI"))
-	err := stats.StartUpdateWorkers(cancel) // Will execute all tasks in the queue every 5 min
+	err := workers.StartUpdateWorkers(cancel) // Will execute all tasks in the queue every 5 min
 	if err != nil {
 		panic(err)
 	}
@@ -92,6 +92,7 @@ func startScheduler() func() context.Context {
 		logs.Info("Starting cron jobs")
 		runner := cron.New()
 		// Update players and sessions
+		runner.AddFunc("0 0 * * *", createGlossaryTasks)                  // Glossary update
 		runner.AddFunc("0 9 * * *", func() { createRealmTasks("NA") })    // NA
 		runner.AddFunc("0 1 * * *", func() { createRealmTasks("EU") })    // EU
 		runner.AddFunc("0 18 * * *", func() { createRealmTasks("ASIA") }) // ASIA
@@ -99,6 +100,13 @@ func startScheduler() func() context.Context {
 		return runner.Stop
 	}
 	return func() context.Context { return context.Background() }
+}
+
+func createGlossaryTasks() {
+	err := scheduler.CreateGlossaryTasks(scheduler.TaskTypeUpdateGlossary, 3)
+	if err != nil {
+		logs.Error("Error creating glossary tasks")
+	}
 }
 
 func createRealmTasks(realm string) {

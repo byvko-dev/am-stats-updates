@@ -1,4 +1,4 @@
-package updateplayers
+package accounts
 
 import (
 	"errors"

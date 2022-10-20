@@ -1,4 +1,4 @@
-package savesnapshots
+package snapshots
 
 import (
 	"errors"

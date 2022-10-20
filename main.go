@@ -5,9 +5,9 @@ import (
 	"os/signal"
 
 	"github.com/byvko-dev/am-core/logs"
-	"github.com/byvko-dev/am-stats-updates/scheduler"
-	"github.com/byvko-dev/am-stats-updates/webserver"
-	"github.com/byvko-dev/am-stats-updates/workers"
+	"github.com/byvko-dev/am-stats-updates/internal/scheduler"
+	"github.com/byvko-dev/am-stats-updates/internal/webserver"
+	"github.com/byvko-dev/am-stats-updates/internal/workers"
 )
 
 func main() {

@@ -3,9 +3,9 @@ package scheduler
 import (
 	"encoding/json"
 
-	"github.com/byvko-dev/am-stats-updates/core/database"
-	"github.com/byvko-dev/am-stats-updates/core/helpers"
-	"github.com/byvko-dev/am-stats-updates/core/messaging"
+	"github.com/byvko-dev/am-stats-updates/internal/core/database"
+	"github.com/byvko-dev/am-stats-updates/internal/core/helpers"
+	"github.com/byvko-dev/am-stats-updates/internal/core/messaging"
 )
 
 func SaveUpdateResults(results []helpers.UpdateResult, taskType string) error {

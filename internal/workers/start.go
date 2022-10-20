@@ -2,7 +2,7 @@ package workers
 
 import (
 	"github.com/byvko-dev/am-core/helpers/env"
-	"github.com/byvko-dev/am-stats-updates/core/messaging"
+	"github.com/byvko-dev/am-stats-updates/internal/core/messaging"
 )
 
 func Start(cancel chan int) {

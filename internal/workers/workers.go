@@ -6,11 +6,11 @@ import (
 
 	"github.com/byvko-dev/am-core/helpers/env"
 	"github.com/byvko-dev/am-core/logs"
-	"github.com/byvko-dev/am-stats-updates/core/helpers"
-	"github.com/byvko-dev/am-stats-updates/scheduler"
-	accounts "github.com/byvko-dev/am-stats-updates/workers/accounts"
-	"github.com/byvko-dev/am-stats-updates/workers/glossary"
-	snapshots "github.com/byvko-dev/am-stats-updates/workers/snapshots"
+	"github.com/byvko-dev/am-stats-updates/internal/core/helpers"
+	"github.com/byvko-dev/am-stats-updates/internal/scheduler"
+	accounts "github.com/byvko-dev/am-stats-updates/internal/workers/accounts"
+	"github.com/byvko-dev/am-stats-updates/internal/workers/glossary"
+	snapshots "github.com/byvko-dev/am-stats-updates/internal/workers/snapshots"
 )
 
 func StartUpdateWorkers(cancel chan int) error {

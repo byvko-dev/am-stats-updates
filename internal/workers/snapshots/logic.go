@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-core/logs"
-	wn8 "github.com/byvko-dev/am-core/stats/ratings/wn8/v1"
-	"github.com/byvko-dev/am-stats-updates/core/database"
-	"github.com/byvko-dev/am-stats-updates/core/helpers"
-	"github.com/byvko-dev/am-types/stats/v3"
+	"github.com/byvko-dev/am-stats-updates/calculations"
+	"github.com/byvko-dev/am-stats-updates/internal/core/database"
+	"github.com/byvko-dev/am-stats-updates/internal/core/helpers"
 	"github.com/byvko-dev/am-types/wargaming/v2/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 	wg "github.com/cufee/am-wg-proxy-next/client"
@@ -83,24 +82,6 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 				}
 			}
 
-			var snapshot stats.AccountSnapshot
-			snapshot.AccountID = int64(account.AccountID)
-			snapshot.CreatedAt = time.Now().Unix()
-			snapshot.IsManual = isManual
-
-			snapshot.LastBattleTime = int(account.LastBattleTime)
-			snapshot.TotalBattles = int(account.Statistics.All.Battles + account.Statistics.Rating.Battles)
-
-			var ratingSnapshot stats.Frame
-			ratingSnapshot.Total = statistics.StatsFrame(account.Statistics.Rating)
-			snapshot.Stats.Rating = ratingSnapshot
-
-			var regularSnapshot stats.Frame
-			regularSnapshot.Total = statistics.StatsFrame(account.Statistics.All)
-
-			// Add achievements
-			regularSnapshot.Achievements = achievementsData[id]
-
 			// Get vehicle stats
 			vehicles, e := client.GetAccountVehicles(int(account.AccountID))
 			if e != nil {
@@ -109,44 +90,18 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 				return
 			}
 
-			// Get achievements per vehicle
-			// TODO: no endpoint for this yet
+			// TODO: Get vehicle achievements
+			vehicleAchievements := make(map[int]statistics.AchievementsFrame)
 
-			// Add vehicles
-			regularSnapshot.Vehicles = make(map[int]stats.VehicleStats)
-			for _, vehicle := range vehicles {
-				averages, err := database.GetTankAverages(vehicle.TankID)
-				ratings := make(map[string]int)
-				if err == nil {
-					rating, unweighted := wn8.VehicleWN8(vehicle, averages)
-					ratings[wn8.WN8] = rating
-					ratings[wn8.WN8Unweighted] = unweighted
-				}
-				regularSnapshot.Vehicles[vehicle.TankID] = stats.VehicleStats{
-					VehicleStatsFrame: vehicle,
-					Ratings:           ratings,
-				}
-			}
-
-			snapshot.Stats.Regular = regularSnapshot
-
-			// Career WN8
-			var totalWN8 int
-			var totalBattles int
-			for _, vehicle := range regularSnapshot.Vehicles {
-				unweighted, ok := vehicle.Ratings[wn8.WN8Unweighted]
-				if ok {
-					totalWN8 += unweighted
-					totalBattles += vehicle.Stats.Battles
-				}
-			}
-			if totalBattles > 0 {
-				regularSnapshot.Ratings = make(map[string]int)
-				regularSnapshot.Ratings["wn8"] = totalWN8 / totalBattles
+			snapshot, err := calculations.AccountSnapshot(account, achievementsData[id], vehicles, vehicleAchievements, database.GetTankAverages)
+			if err != nil {
+				retry <- id
+				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to calculate player snapshot: %s", err.Error()), WillRetry: true}
+				return
 			}
 
 			// Save to database
-			err := database.SavePlayerSnapshot(snapshot)
+			err = database.SavePlayerSnapshot(snapshot)
 			if err != nil {
 				retry <- id
 				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to save snapshot: %s", err.Error()), WillRetry: true}

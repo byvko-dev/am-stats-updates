@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/byvko-dev/am-core/logs"
-	"github.com/byvko-dev/am-stats-updates/core/database"
-	"github.com/byvko-dev/am-stats-updates/core/helpers"
+	"github.com/byvko-dev/am-stats-updates/internal/core/database"
+	"github.com/byvko-dev/am-stats-updates/internal/core/helpers"
 )
 
 const (

@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/byvko-dev/am-core/logs"
-	"github.com/byvko-dev/am-stats-updates/scheduler"
-	"github.com/byvko-dev/am-stats-updates/workers/snapshots"
+	"github.com/byvko-dev/am-stats-updates/internal/scheduler"
+	"github.com/byvko-dev/am-stats-updates/internal/workers/snapshots"
 	"github.com/gofiber/fiber/v2"
 )
 

@@ -1,7 +1,7 @@
 package webserver
 
 import (
-	"github.com/byvko-dev/am-stats-updates/scheduler"
+	"github.com/byvko-dev/am-stats-updates/internal/scheduler"
 	"github.com/gofiber/fiber/v2"
 )
 

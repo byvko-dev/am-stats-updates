@@ -92,8 +92,8 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 
 			// TODO: Get vehicle achievements
 			vehicleAchievements := make(map[int]statistics.AchievementsFrame)
-
-			snapshot, err := calculations.AccountSnapshot(account, achievementsData[id], vehicles, vehicleAchievements, database.GetTankAverages)
+			vehicleCutoffTime := 0 // Vehicles with battles played before this timestamp will not be added to the snapshot -- 0 means no cutoff
+			snapshot, err := calculations.AccountSnapshot(account, achievementsData[id], vehicles, vehicleAchievements, vehicleCutoffTime, database.GetTankAverages)
 			if err != nil {
 				retry <- id
 				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to calculate player snapshot: %s", err.Error()), WillRetry: true}

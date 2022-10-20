@@ -13,7 +13,7 @@ import (
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 )
 
-func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, getAverage func(int) (blitzstars.TankAverages, error)) (stats.AccountSnapshot, error) {
+func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, vehiclesCutoffTime int, getAverage func(int) (blitzstars.TankAverages, error)) (stats.AccountSnapshot, error) {
 	if account.AccountID == 0 {
 		return stats.AccountSnapshot{}, errors.New("invalid account id")
 	}
@@ -48,6 +48,7 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 		wg.Add(1)
 		go func(vehicle statistics.VehicleStatsFrame) {
 			defer wg.Done()
+
 			averages, err := getAverage(vehicle.TankID)
 			ratings := make(map[string]int)
 			if err == nil {
@@ -55,10 +56,13 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 				ratings[wn8.WN8] = rating
 				ratings[wn8.WN8Unweighted] = unweighted
 			}
-			vehicleStats <- stats.VehicleStats{
-				VehicleStatsFrame: vehicle,
-				Ratings:           ratings,
-				Achievements:      vehicleAchievements[vehicle.TankID],
+
+			if vehiclesCutoffTime > 0 && vehicle.LastBattleTime >= vehiclesCutoffTime {
+				vehicleStats <- stats.VehicleStats{
+					VehicleStatsFrame: vehicle,
+					Ratings:           ratings,
+					Achievements:      vehicleAchievements[vehicle.TankID],
+				}
 			}
 
 			// For career WN8 calculation

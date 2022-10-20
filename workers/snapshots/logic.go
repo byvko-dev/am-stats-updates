@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-core/logs"
+	wn8 "github.com/byvko-dev/am-core/stats/ratings/wn8/v1"
 	"github.com/byvko-dev/am-stats-updates/core/database"
 	"github.com/byvko-dev/am-stats-updates/core/helpers"
 	"github.com/byvko-dev/am-types/stats/v3"
@@ -114,12 +115,35 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 			// Add vehicles
 			regularSnapshot.Vehicles = make(map[int]stats.SnapshotVehicleStats)
 			for _, vehicle := range vehicles {
+				averages, err := database.GetTankAverages(vehicle.TankID)
+				ratings := make(map[string]int)
+				if err == nil {
+					rating, unweighted := wn8.VehicleWN8(vehicle, averages)
+					ratings[wn8.WN8] = rating
+					ratings[wn8.WN8Unweighted] = unweighted
+				}
 				regularSnapshot.Vehicles[vehicle.TankID] = stats.SnapshotVehicleStats{
 					VehicleStatsFrame: vehicle,
+					Ratings:           ratings,
 				}
 			}
 
 			snapshot.Stats.Regular = regularSnapshot
+
+			// Career WN8
+			var totalWN8 int
+			var totalBattles int
+			for _, vehicle := range regularSnapshot.Vehicles {
+				unweighted, ok := vehicle.Ratings[wn8.WN8Unweighted]
+				if ok {
+					totalWN8 += unweighted
+					totalBattles += vehicle.Stats.Battles
+				}
+			}
+			if totalBattles > 0 {
+				regularSnapshot.Ratings = make(map[string]int)
+				regularSnapshot.Ratings["wn8"] = totalWN8 / totalBattles
+			}
 
 			// Save to database
 			err := database.SavePlayerSnapshot(snapshot)

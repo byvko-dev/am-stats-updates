@@ -3,8 +3,8 @@ module github.com/byvko-dev/am-stats-updates
 go 1.19
 
 require (
-	github.com/byvko-dev/am-core v1.3.2
-	github.com/byvko-dev/am-types v1.6.7
+	github.com/byvko-dev/am-core v1.3.6
+	github.com/byvko-dev/am-types v1.6.8
 	github.com/cufee/am-wg-proxy-next v1.3.2
 	github.com/gofiber/fiber/v2 v2.36.0
 	github.com/rabbitmq/amqp091-go v1.5.0

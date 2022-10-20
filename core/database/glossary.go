@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/byvko-dev/am-core/mongodb/driver"
-	"github.com/byvko-dev/am-stats-updates/core/blitzstars"
+	"github.com/byvko-dev/am-core/stats/blitzstars/v1"
 	"github.com/byvko-dev/am-types/stats/v3"
 
 	"go.mongodb.org/mongo-driver/bson"

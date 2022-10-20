@@ -57,7 +57,7 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 				ratings[wn8.WN8Unweighted] = unweighted
 			}
 
-			if vehiclesCutoffTime > 0 && vehicle.LastBattleTime >= vehiclesCutoffTime {
+			if vehiclesCutoffTime == 0 || vehicle.LastBattleTime >= vehiclesCutoffTime {
 				vehicleStats <- stats.VehicleStats{
 					VehicleStatsFrame: vehicle,
 					Ratings:           ratings,

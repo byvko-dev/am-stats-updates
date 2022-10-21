@@ -45,18 +45,17 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 	var totalBattles int32
 
 	for _, vehicle := range vehicles {
+		if (vehiclesCutoffTime != 0 && vehicle.LastBattleTime < vehiclesCutoffTime) || vehicle.Stats.Battles == 0 {
+			continue
+		}
 		wg.Add(1)
 		go func(vehicle statistics.VehicleStatsFrame) {
 			defer wg.Done()
-			if vehiclesCutoffTime != 0 && vehicle.LastBattleTime < vehiclesCutoffTime {
-				return
-			}
-
 			averages, ok := vehicleAverages[vehicle.TankID]
 			ratings := make(map[string]int)
 			if ok {
 				rating, unweighted := wn8.VehicleWN8(vehicle, averages)
-				if unweighted > -1 {
+				if unweighted > 0 && rating > 0 {
 					ratings[wn8.WN8] = rating
 					ratings[wn8.WN8Unweighted] = unweighted
 

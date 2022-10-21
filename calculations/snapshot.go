@@ -13,7 +13,7 @@ import (
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 )
 
-func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, vehiclesCutoffTime int, vehicleAverages map[int]blitzstars.TankAverages) (stats.AccountSnapshot, error) {
+func AccountSnapshot(account accounts.CompleteProfile, accountAchievements statistics.AchievementsFrame, vehicles []statistics.VehicleStatsFrame, vehicleAchievements map[int]statistics.AchievementsFrame, vehiclesCutoffTime int, vehicleAverages map[int]blitzstars.TankAverages, glossaryData map[int]stats.VehicleInfo) (stats.AccountSnapshot, error) {
 	if account.AccountID == 0 {
 		return stats.AccountSnapshot{}, errors.New("invalid account id")
 	}
@@ -58,11 +58,18 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 			}
 
 			if vehiclesCutoffTime == 0 || vehicle.LastBattleTime >= vehiclesCutoffTime {
-				vehicleStats <- stats.VehicleStats{
+				v := stats.VehicleStats{
 					VehicleStatsFrame: vehicle,
 					Ratings:           ratings,
 					Achievements:      vehicleAchievements[vehicle.TankID],
 				}
+
+				if vehicleInfo, ok := glossaryData[vehicle.TankID]; ok {
+					v.TankName = vehicleInfo.Name
+					v.TankTier = vehicleInfo.Tier
+				}
+
+				vehicleStats <- v
 			}
 
 			// For career WN8 calculation

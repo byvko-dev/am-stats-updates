@@ -12,6 +12,7 @@ import (
 	"github.com/byvko-dev/am-stats-updates/calculations"
 	"github.com/byvko-dev/am-stats-updates/internal/core/database"
 	"github.com/byvko-dev/am-stats-updates/internal/core/helpers"
+	"github.com/byvko-dev/am-types/stats/v3"
 	"github.com/byvko-dev/am-types/wargaming/v2/accounts"
 	"github.com/byvko-dev/am-types/wargaming/v2/statistics"
 	wg "github.com/cufee/am-wg-proxy-next/client"
@@ -107,10 +108,21 @@ func savePlayerSnapshots(realm string, playerIDs []string, isManual bool) ([]hel
 				averages[a.TankID] = a
 			}
 
+			infoSlice, err := database.GetVehiclesInfo(tankIds...)
+			if err != nil {
+				retry <- id
+				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to get tank averages: %s", err.Error()), WillRetry: true}
+				return
+			}
+			info := make(map[int]stats.VehicleInfo)
+			for _, a := range infoSlice {
+				info[a.TankID] = a
+			}
+
 			// TODO: Get vehicle achievements
 			vehicleAchievements := make(map[int]statistics.AchievementsFrame)
 			vehicleCutoffTime := 0 // Vehicles with battles played before this timestamp will not be added to the snapshot -- 0 means no cutoff
-			snapshot, err := calculations.AccountSnapshot(account, achievementsData[id], vehicles, vehicleAchievements, vehicleCutoffTime, averages)
+			snapshot, err := calculations.AccountSnapshot(account, achievementsData[id], vehicles, vehicleAchievements, vehicleCutoffTime, averages, info)
 			if err != nil {
 				retry <- id
 				result <- helpers.UpdateResult{AccountID: id, Error: fmt.Sprintf("failed to calculate player snapshot: %s", err.Error()), WillRetry: true}

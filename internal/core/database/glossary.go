@@ -21,13 +21,13 @@ func GetVehiclesInfo(ids ...int) ([]stats.VehicleInfo, error) {
 	}
 
 	filter := bson.M{}
-	filter["tankId"] = bson.M{"$in": ids}
+	filter["tank_id"] = bson.M{"$in": ids}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var data []stats.VehicleInfo
-	cur, err := client.Raw(collectionAverages).Find(ctx, filter)
+	cur, err := client.Raw(collectionVehiclesGlossary).Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

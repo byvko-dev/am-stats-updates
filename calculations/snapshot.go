@@ -87,8 +87,8 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 	}
 
 	// Calculate career WN8
+	regularSnapshot.Ratings = make(map[string]int)
 	if totalBattles > 0 {
-		regularSnapshot.Ratings = make(map[string]int)
 		regularSnapshot.Ratings["wn8"] = int(totalWN8 / totalBattles)
 	}
 

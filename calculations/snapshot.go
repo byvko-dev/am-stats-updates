@@ -45,7 +45,7 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 	var totalBattles int32
 
 	for _, vehicle := range vehicles {
-		if (vehiclesCutoffTime != 0 && vehicle.LastBattleTime < vehiclesCutoffTime) || vehicle.Stats.Battles == 0 {
+		if (vehicle.LastBattleTime < vehiclesCutoffTime) || vehicle.Stats.Battles == 0 {
 			continue
 		}
 		wg.Add(1)

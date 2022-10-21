@@ -48,36 +48,36 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 		wg.Add(1)
 		go func(vehicle statistics.VehicleStatsFrame) {
 			defer wg.Done()
+			if vehiclesCutoffTime != 0 && vehicle.LastBattleTime < vehiclesCutoffTime {
+				return
+			}
 
 			averages, ok := vehicleAverages[vehicle.TankID]
 			ratings := make(map[string]int)
 			if ok {
 				rating, unweighted := wn8.VehicleWN8(vehicle, averages)
-				ratings[wn8.WN8] = rating
-				ratings[wn8.WN8Unweighted] = unweighted
-			}
+				if unweighted > -1 {
+					ratings[wn8.WN8] = rating
+					ratings[wn8.WN8Unweighted] = unweighted
 
-			if vehiclesCutoffTime == 0 || vehicle.LastBattleTime >= vehiclesCutoffTime {
-				v := stats.VehicleStats{
-					VehicleStatsFrame: vehicle,
-					Ratings:           ratings,
-					Achievements:      vehicleAchievements[vehicle.TankID],
+					// For career WN8 calculation
+					atomic.AddInt32(&totalWN8, int32(unweighted))
+					atomic.AddInt32(&totalBattles, int32(vehicle.Stats.Battles))
 				}
-
-				if vehicleInfo, ok := glossaryData[vehicle.TankID]; ok {
-					v.TankName = vehicleInfo.Name
-					v.TankTier = vehicleInfo.Tier
-				}
-
-				vehicleStats <- v
 			}
 
-			// For career WN8 calculation
-			unweighted, ok := ratings[wn8.WN8Unweighted]
-			if ok {
-				atomic.AddInt32(&totalWN8, int32(unweighted))
-				atomic.AddInt32(&totalBattles, int32(vehicle.Stats.Battles))
+			v := stats.VehicleStats{
+				VehicleStatsFrame: vehicle,
+				Ratings:           ratings,
+				Achievements:      vehicleAchievements[vehicle.TankID],
 			}
+
+			if vehicleInfo, ok := glossaryData[vehicle.TankID]; ok {
+				v.TankName = vehicleInfo.Name
+				v.TankTier = vehicleInfo.Tier
+			}
+
+			vehicleStats <- v
 		}(vehicle)
 	}
 	wg.Wait()

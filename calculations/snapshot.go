@@ -55,14 +55,12 @@ func AccountSnapshot(account accounts.CompleteProfile, accountAchievements stati
 			ratings := make(map[string]int)
 			if ok {
 				rating, unweighted := wn8.VehicleWN8(vehicle, averages)
-				if unweighted > 0 && rating > 0 {
-					ratings[wn8.WN8] = rating
-					ratings[wn8.WN8Unweighted] = unweighted
+				ratings[wn8.WN8] = rating
+				ratings[wn8.WN8Unweighted] = unweighted
 
-					// For career WN8 calculation
-					atomic.AddInt32(&totalWN8, int32(unweighted))
-					atomic.AddInt32(&totalBattles, int32(vehicle.Stats.Battles))
-				}
+				// For career WN8 calculation
+				atomic.AddInt32(&totalWN8, int32(unweighted))
+				atomic.AddInt32(&totalBattles, int32(vehicle.Stats.Battles))
 			}
 
 			v := stats.VehicleStats{

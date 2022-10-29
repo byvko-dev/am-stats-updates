@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/byvko-dev/am-core/logs"
@@ -19,6 +20,16 @@ func Connect(connString string) (func() error, error) {
 		return nil, err
 	}
 	globalConnection = conn
+
+	errChan := make(chan *amqp.Error)
+	globalConnection.NotifyClose(errChan)
+	go func() {
+		err := <-errChan
+		if err != nil {
+			panic(fmt.Sprintf("Connection to RabbitMQ is closed: [%v] %v", err.Code, err.Reason))
+		}
+		panic("Connection to RabbitMQ was closed without an error")
+	}()
 
 	ch, err := globalConnection.Channel()
 	if err != nil {
@@ -41,6 +52,10 @@ func Connect(connString string) (func() error, error) {
 }
 
 func SendQueueMessage(queue string, payload []byte) error {
+	if cacheUpdatesChannel.IsClosed() {
+		panic("Channel is closed")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
